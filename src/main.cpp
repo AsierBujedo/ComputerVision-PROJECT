@@ -3,8 +3,18 @@
 
 using namespace cv;
 
+void print_coords(int event, int x, int y, int flags, void* userdata) {
+    if (event == EVENT_LBUTTONDOWN) {
+        std::cout << "x: " << x << ", y: " << y << std::endl;
+    }
+}
+
 int main() {
-    // Load the car cascade classifier
+
+    namedWindow("Car Detection", WINDOW_AUTOSIZE);
+    setMouseCallback("Car Detection", print_coords);
+
+    // Cargar el clasificador Haar Cascade para coches
     CascadeClassifier car_cascade;
     if (!car_cascade.load("cars.xml")) {
         std::cerr << "Error loading cars.xml" << std::endl;
@@ -17,12 +27,20 @@ int main() {
         return -1;
     }
 
-    // The 4 point have been selected manually. They represent the region of interest (ROI) where we want to detect cars
-    std::vector<Point> roi_corners = {
-        Point(190, 833),    
-        Point(1295, 174),   
-        Point(1705, 205),   
-        Point(1363, 1035)   
+    // ROI Left lane
+    std::vector<Point> roi_left = {
+        Point(610, 715),       // Down-Left point
+        Point(1305, 135),       // Top-Left point
+        Point(1510, 195),      // Top-Right point
+        Point(930, 850)        // Down-Right Point
+    };
+
+    // ROI Right lane
+    std::vector<Point> roi_right = {
+        Point(930, 850),      // Down-Left point
+        Point(1510, 195),      // Top-Left point 
+        Point(1715, 255),      // Top-Right point
+        Point(1350, 900)       // Down-Right Point
     };
 
     while (true) {
@@ -33,35 +51,49 @@ int main() {
             break;
         }
 
-        // Preprocessing starts here
-
-        // Convert the frame to grayscale
+        // Convert frame to grayscale
         Mat gray;
         cvtColor(frame, gray, COLOR_BGR2GRAY);
 
-        Mat mask = Mat::zeros(gray.size(), gray.type()); // Create a mask with the same size as the frame, initialized to black (0)
-        fillPoly(mask, std::vector<std::vector<Point>>{roi_corners}, Scalar(255)); // Fill the polygon on the mask with white (255) for the area of interest
+        // Create masks pero ROI
+        Mat mask_left = Mat::zeros(gray.size(), gray.type());
+        fillPoly(mask_left, std::vector<std::vector<Point>>{roi_left}, Scalar(255));
 
-        // Apply the mask to the grayscale image
-        Mat masked_gray;
-        bitwise_and(gray, mask, masked_gray);
+        Mat mask_right = Mat::zeros(gray.size(), gray.type());
+        fillPoly(mask_right, std::vector<std::vector<Point>>{roi_right}, Scalar(255));
 
-        // Detect cars within the masked area
-        std::vector<Rect> cars;
-        car_cascade.detectMultiScale(masked_gray, cars, 1.1, 5, 0, Size(30, 30));
+        // Apply both masks to the image (grayscale)
+        Mat masked_gray_left, masked_gray_right;
+        bitwise_and(gray, mask_left, masked_gray_left);
+        bitwise_and(gray, mask_right, masked_gray_right);
 
-        // Draw rectangles around detected cars in the original frame
-        for (size_t i = 0; i < cars.size(); i++) {
-            rectangle(frame, cars[i], Scalar(255, 0, 0), 2);
+        // Detect cars per ROI
+        std::vector<Rect> cars_left, cars_right;
+        car_cascade.detectMultiScale(masked_gray_left, cars_left, 1.1, 5, 0, Size(30, 30));
+        car_cascade.detectMultiScale(masked_gray_right, cars_right, 1.1, 5, 0, Size(30, 30));
+
+        // Draw rectangles defining cars in the left lane
+        for (size_t i = 0; i < cars_left.size(); i++) {
+            // Filter by size to avoid an over-detection
+            if (cars_left[i].width > 50 && cars_left[i].height > 30) {
+                rectangle(frame, cars_left[i], Scalar(255, 0, 0), 2); // Azul para el carril izquierdo
+            }
         }
 
-        // Draw the polygonal ROI on the original frame for visualization
-        polylines(frame, roi_corners, true, Scalar(0, 255, 0), 2);
+        // Draw rectangles defining cars in the right lane
+        for (size_t i = 0; i < cars_right.size(); i++) {
+            // Filter by size to avoid an over-detection
+            if (cars_right[i].width > 50 && cars_right[i].height > 30) {
+                rectangle(frame, cars_right[i], Scalar(0, 0, 255), 2); // Rojo para el carril derecho
+            }
+        }
 
-        // Display the frame with car detections and the ROI
+        // Draw ROIs at the original frame setting different colours
+        polylines(frame, roi_left, true, Scalar(0, 255, 0), 2); 
+        polylines(frame, roi_right, true, Scalar(255, 0, 255), 2);
+
         imshow("Car Detection", frame);
 
-        // Exit the loop if the ESC key is pressed
         if (waitKey(30) == 27) {
             break;
         }
