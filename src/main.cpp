@@ -1,117 +1,109 @@
-// Some recommendations taken from https://www.kaggle.com/code/hamedetezadi/haar-cascade-classifier-car-detection
-
 #include <iostream>
+#include <fstream>
 #include <opencv2/opencv.hpp>
+#include <tesseract/baseapi.h>
 
 using namespace cv;
+using namespace std;
 
-void print_coords(int event, int x, int y, int flags, void* userdata) {
-    if (event == EVENT_LBUTTONDOWN) {
-        std::cout << "x: " << x << ", y: " << y << std::endl;
-    }
+// Función para extraer texto desde una ROI usando Tesseract
+string extractTextFromROI(const Mat& frame, Rect roi) {
+    Mat roiImage = frame(roi);
+    cvtColor(roiImage, roiImage, COLOR_BGR2GRAY); // Convertir a escala de grises
+    threshold(roiImage, roiImage, 100, 255, THRESH_BINARY); // Binarizar para mejor OCR
+
+    tesseract::TessBaseAPI ocr;
+    ocr.Init(nullptr, "eng", tesseract::OEM_LSTM_ONLY);
+    ocr.SetPageSegMode(tesseract::PSM_SINGLE_LINE);
+    ocr.SetImage(roiImage.data, roiImage.cols, roiImage.rows, 1, roiImage.step);
+
+    string text = string(ocr.GetUTF8Text());
+    ocr.End();
+
+    return text;
 }
 
 int main() {
-
-    namedWindow("Car Detection", WINDOW_AUTOSIZE);
-    setMouseCallback("Car Detection", print_coords);
-
     // Cargar el clasificador Haar Cascade para coches
     CascadeClassifier car_cascade;
-    if (!car_cascade.load("cars.xml")) {
-        std::cerr << "Error loading cars.xml" << std::endl;
+    if (!car_cascade.load("./cars.xml")) {
+        cerr << "Error loading cars.xml" << endl;
         return -1;
     }
 
     VideoCapture cap("./video.mp4");
     if (!cap.isOpened()) {
-        std::cerr << "Error opening video file" << std::endl;
+        cerr << "Error opening video file" << endl;
         return -1;
     }
 
-    // ROI Left lane
-    std::vector<Point> roi_left = {
-        Point(610, 715),       // Down-Left point
-        Point(1305, 135),       // Top-Left point
-        Point(1510, 195),      // Top-Right point
-        Point(930, 850)        // Down-Right Point
+    // Configurar archivo CSV
+    ofstream csvFile("car_counts.csv");
+    csvFile << "Time,LeftLaneCars,RightLaneCars\n";
+
+    // ROI para fecha/hora (ajustar según el video)
+    Rect dateRoi(50, 50, 200, 50);
+
+    // ROI de carriles
+    vector<Point> roi_left = {
+        Point(610, 715),
+        Point(1305, 135),
+        Point(1510, 195),
+        Point(930, 850)
     };
 
-    // ROI Right lane
-    std::vector<Point> roi_right = {
-        Point(930, 850),      // Down-Left point
-        Point(1510, 195),      // Top-Left point 
-        Point(1715, 255),      // Top-Right point
-        Point(1350, 900)       // Down-Right Point
+    vector<Point> roi_right = {
+        Point(930, 850),
+        Point(1510, 195),
+        Point(1715, 255),
+        Point(1350, 900)
     };
 
-    while (true) {
-        Mat frame;
-        cap >> frame;
+    Mat frame;
+    while (cap.read(frame)) {
+        // Extraer texto de la ROI de fecha/hora
+        string dateTime = extractTextFromROI(frame, dateRoi);
 
-        if (frame.empty()) {
-            break;
-        }
-
-        // Convert frame to grayscale
-        Mat gray;
+        // Procesar imagen para detección
+        Mat gray, closed, dilated;
         cvtColor(frame, gray, COLOR_BGR2GRAY);
-
-        // Apply Gaussian Blur
         GaussianBlur(gray, gray, Size(5, 5), 0);
 
-        // Create an elliptical kernel for morphological closing
         Mat kernel_close = getStructuringElement(MORPH_ELLIPSE, Size(2, 2));
-
-        // Apply morphological closing (apply after GaussianBlur, before dilation)
-        Mat closed;
         morphologyEx(gray, closed, MORPH_CLOSE, kernel_close);
 
-        // Apply dilation after closing
-        Mat kernel_dilate = Mat::ones(3, 3, CV_8U); // Kernel for dilation
-        Mat dilated;
-        dilate(closed, dilated, kernel_dilate); // Apply dilation
+        Mat kernel_dilate = Mat::ones(3, 3, CV_8U);
+        dilate(closed, dilated, kernel_dilate);
 
-        // Create masks per ROI
+        // Crear máscaras y detectar coches
         Mat mask_left = Mat::zeros(dilated.size(), dilated.type());
-        fillPoly(mask_left, std::vector<std::vector<Point>>{roi_left}, Scalar(255));
-
         Mat mask_right = Mat::zeros(dilated.size(), dilated.type());
-        fillPoly(mask_right, std::vector<std::vector<Point>>{roi_right}, Scalar(255));
+        fillPoly(mask_left, vector<vector<Point>>{roi_left}, Scalar(255));
+        fillPoly(mask_right, vector<vector<Point>>{roi_right}, Scalar(255));
 
-        // Apply both masks to the closed image (after closing and dilation)
         Mat masked_gray_left, masked_gray_right;
         bitwise_and(dilated, mask_left, masked_gray_left);
         bitwise_and(dilated, mask_right, masked_gray_right);
 
-        // Detect cars per ROI
-        std::vector<Rect> cars_left, cars_right;
+        vector<Rect> cars_left, cars_right;
         car_cascade.detectMultiScale(masked_gray_left, cars_left, 1.1, 5, 0, Size(30, 30));
         car_cascade.detectMultiScale(masked_gray_right, cars_right, 1.1, 5, 0, Size(30, 30));
 
-        // Draw rectangles defining cars in the left lane
-        for (size_t i = 0; i < cars_left.size(); i++) {
-            if (cars_left[i].width > 50 && cars_left[i].height > 30) {
-                rectangle(frame, cars_left[i], Scalar(255, 0, 0), 2);
-            }
-        }
+        // Guardar resultados en CSV
+        csvFile << dateTime << "," << cars_left.size() << "," << cars_right.size() << "\n";
 
-        // Draw rectangles defining cars in the right lane
-        for (size_t i = 0; i < cars_right.size(); i++) {
-            if (cars_right[i].width > 50 && cars_right[i].height > 30) {
-                rectangle(frame, cars_right[i], Scalar(0, 0, 255), 2);
-            }
-        }
-
-        // Draw ROIs at the original frame setting different colours
-        polylines(frame, roi_left, true, Scalar(0, 255, 0), 2); 
+        // Dibujar ROI y detecciones
+        polylines(frame, roi_left, true, Scalar(0, 255, 0), 2);
         polylines(frame, roi_right, true, Scalar(255, 0, 255), 2);
 
-        // Show the main detection window
-        imshow("Car Detection", frame);
+        for (const auto& car : cars_left) {
+            rectangle(frame, car, Scalar(255, 0, 0), 2);
+        }
+        for (const auto& car : cars_right) {
+            rectangle(frame, car, Scalar(0, 0, 255), 2);
+        }
 
-        // Print number of cars per lane
-        std::cout << "Right lane: " << cars_right.size() << " Left lane: " << cars_left.size() << std::endl;
+        imshow("Car Detection", frame);
 
         if (waitKey(30) == 27) {
             break;
@@ -119,5 +111,8 @@ int main() {
     }
 
     cap.release();
+    csvFile.close();
+    destroyAllWindows();
+
     return 0;
 }

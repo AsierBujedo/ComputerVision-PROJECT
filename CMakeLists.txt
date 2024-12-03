@@ -15,5 +15,9 @@ add_executable(ComputerVisionProject ${SOURCES})
 
 # Find OpenCV package
 find_package(OpenCV REQUIRED)
-include_directories(${OpenCV_INCLUDE_DIRS})
-target_link_libraries(ComputerVisionProject ${OpenCV_LIBS})
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+find_package(Tesseract REQUIRED)
+
+include_directories(${OpenCV_INCLUDE_DIRS} ${Tesseract_INCLUDE_DIRS})
+target_link_libraries(ComputerVisionProject ${OpenCV_LIBS} ${Tesseract_LIBRARIES})
