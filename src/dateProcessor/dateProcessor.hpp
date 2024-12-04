@@ -7,6 +7,7 @@
 using namespace cv;
 
 Mat preprocessROI(const Mat& roi);
-std::string extractTextFromROI(const Mat& frame, Rect roi);
+std::string extractTextFromROI(const Mat& frame);
+void drawDate(Mat &frame);
 
 #endif

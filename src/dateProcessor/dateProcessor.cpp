@@ -1,6 +1,8 @@
 #include "dateProcessor.hpp"
 #include <tesseract/baseapi.h>
 
+Rect dateRoi(650, 1055, 200, 25);
+
 Mat preprocessROI(const Mat& roi) {
     Mat gray, blurred, binary;
 
@@ -27,8 +29,8 @@ Mat preprocessROI(const Mat& roi) {
     return binary;
 }
 
-std::string extractTextFromROI(const Mat& frame, Rect roi) {
-    Mat roiImage = frame(roi);
+std::string extractTextFromROI(const Mat& frame) {
+    Mat roiImage = frame(dateRoi);
     Mat processedROI = preprocessROI(roiImage);
 
     imshow("Processed ROI", processedROI);
@@ -47,5 +49,9 @@ std::string extractTextFromROI(const Mat& frame, Rect roi) {
     ocr.End();
 
     return text;
+}
+
+void drawDate(Mat &frame) {
+    rectangle(frame, dateRoi, Scalar(0, 255, 0), 2);
 }
 
