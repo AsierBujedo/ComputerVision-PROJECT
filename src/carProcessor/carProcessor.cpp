@@ -46,6 +46,7 @@ void processFrame(Mat &frame, std::vector<Rect> &cars_left, std::vector<Rect> &c
     carCascade.detectMultiScale(masked_gray_left, cars_left, 1.1, 5, 0, Size(30, 30));
     carCascade.detectMultiScale(masked_gray_right, cars_right, 1.1, 5, 0, Size(30, 30));
 }
+
 void drawCars(Mat &frame, std::vector<Rect> &cars_left, std::vector<Rect> &cars_right) {
     polylines(frame, roi_left, true, Scalar(0, 255, 0), 2);
     polylines(frame, roi_right, true, Scalar(255, 0, 255), 2);
