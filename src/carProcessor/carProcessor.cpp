@@ -1,17 +1,17 @@
 #include "carProcessor.hpp"
 
 std::vector<Point> roi_left = {
-    Point(610, 715),
+    Point(320, 870),
     Point(1305, 135),
     Point(1510, 195),
-    Point(930, 850)
+    Point(800, 1020)
 };
 
 std::vector<Point> roi_right = {
-    Point(930, 850),
+    Point(800, 1020),
     Point(1510, 195),
     Point(1715, 255),
-    Point(1350, 900)
+    Point(1240, 1050)
 };
 
 int loadCarCascade(CascadeClassifier &carCascade){
