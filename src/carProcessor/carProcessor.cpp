@@ -1,4 +1,5 @@
 #include "carProcessor.hpp"
+#include <algorithm>
 
 std::vector<Point> roi_left = {
     Point(320, 870),
@@ -43,9 +44,31 @@ void processFrame(Mat &frame, std::vector<Rect> &cars_left, std::vector<Rect> &c
     bitwise_and(dilated, mask_left, masked_gray_left);
     bitwise_and(dilated, mask_right, masked_gray_right);
 
-    carCascade.detectMultiScale(masked_gray_left, cars_left, 1.1, 5, 0, Size(30, 30));
-    carCascade.detectMultiScale(masked_gray_right, cars_right, 1.1, 5, 0, Size(30, 30));
+    double scaleFactor = frame.rows > 720 ? 1.05 : 1.1;
+    int minNeighbors = frame.rows > 720 ? 4 : 5;
+
+    std::vector<Rect> raw_cars_left, raw_cars_right;
+    carCascade.detectMultiScale(masked_gray_left, raw_cars_left, scaleFactor, minNeighbors, 0, Size(30, 30));
+    carCascade.detectMultiScale(masked_gray_right, raw_cars_right, scaleFactor, minNeighbors, 0, Size(30, 30));
+
+    // Reducción de falsas detecciones
+    auto filterDetections = [](const std::vector<Rect> &raw_cars) {
+        std::vector<Rect> filtered_cars;
+        for (const auto &car : raw_cars) {
+            double aspect_ratio = static_cast<double>(car.width) / car.height;
+            int area = car.width * car.height;
+
+            if (area > 900 && aspect_ratio > 0.5 && aspect_ratio < 2.5) {  // Área mínima y proporción válida
+                filtered_cars.push_back(car);
+            }
+        }
+        return filtered_cars;
+    };
+
+    cars_left = filterDetections(raw_cars_left);
+    cars_right = filterDetections(raw_cars_right);
 }
+
 
 void drawCars(Mat &frame, std::vector<Rect> &cars_left, std::vector<Rect> &cars_right) {
     polylines(frame, roi_left, true, Scalar(0, 255, 0), 2);
