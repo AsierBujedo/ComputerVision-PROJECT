@@ -3,15 +3,19 @@
 
 std::vector<Point> roi_left = {
     Point(320, 870),
-    Point(1305, 135),
-    Point(1510, 195),
+    Point(1200, 320),
+    Point(1210, 250),
+    Point(1335, 240),
+    Point(1410, 310),
     Point(800, 1020)
 };
 
 std::vector<Point> roi_right = {
     Point(800, 1020),
-    Point(1510, 195),
-    Point(1715, 255),
+    Point(1410, 310),
+    Point(1440, 260),
+    Point(1525, 245),
+    Point(1610, 295),
     Point(1240, 1050)
 };
 
