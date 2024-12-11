@@ -30,12 +30,20 @@ int main() {
     std::ofstream csvFile("car_counts.csv");
     csvFile << "Time,LeftLaneCars,RightLaneCars\n";
 
+    int frameSkip = 50; 
+    int frameCount = 0;
+
     while (true) {
         Mat frame;
         cap >> frame;
 
         if (frame.empty()) {
             break;
+        }
+
+        // Saltar fotogramas
+        if (frameCount++ % frameSkip != 0) {
+            continue;
         }
 
         std::string dateTime = extractTextFromROI(frame);
@@ -54,7 +62,7 @@ int main() {
                   << " | Left lane: " << cars_left.size() 
                   << " | Right lane: " << cars_right.size() << std::endl;
 
-        if (waitKey(30) == 27) {
+        if (waitKey(1) == 27) { 
             break;
         }
     }
