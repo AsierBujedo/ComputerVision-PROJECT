@@ -145,4 +145,8 @@ void drawCars(Mat &frame, std::vector<Rect> &cars_left, std::vector<Rect> &cars_
         }
         rectangle(frame, car, Scalar(0, 0, 255), 2);
     }
+
+    // Eliminar posiciones antiguas
+    last_positions_left.clear();
+    last_positions_right.clear();
 }
