@@ -1,7 +1,10 @@
 #include "carProcessor.hpp"
+#include <glm/glm.hpp>
 #include <algorithm>
+#include <optional>
+#include <vector>
 
-std::vector<Point> roi_left = {
+static std::vector<Point> roi_left = {
     Point(320, 870),
     Point(1200, 320),
     Point(1210, 250),
@@ -10,7 +13,7 @@ std::vector<Point> roi_left = {
     Point(800, 1020)
 };
 
-std::vector<Point> roi_right = {
+static std::vector<Point> roi_right = {
     Point(800, 1020),
     Point(1410, 310),
     Point(1440, 260),
@@ -18,6 +21,47 @@ std::vector<Point> roi_right = {
     Point(1610, 295),
     Point(1240, 1050)
 };
+
+static std::vector<glm::vec2> last_positions_left;
+static std::vector<glm::vec2> last_positions_right;
+
+static glm::mat3 homography_inverse = glm::inverse(glm::mat3(
+    1.08680211e-02,  8.00229688e-02, -9.28824499e+01,
+    -2.84379452e-02,  2.91213634e-02, -1.29940476e+01,
+    -5.47771087e-04, -2.32384026e-03,  1.00000000e+00
+));
+
+static std::optional<float> getVelocity(glm::vec2 &pos, bool is_left) {
+    std::vector<glm::vec2> &last_positions = is_left ? last_positions_left : last_positions_right;
+
+    // Calculate distances to all previous positions
+    std::vector<float> distances;
+    for (const auto &last_pos : last_positions) {
+        distances.push_back(glm::distance(pos, last_pos));
+    }
+
+    // Find the closest previous position
+    auto min_distance = std::min_element(distances.begin(), distances.end());
+    int min_index = std::distance(distances.begin(), min_distance);
+
+    // If the closest previous position is too far, return no velocity
+    if (*min_distance > 50.0f) {
+        return std::nullopt;
+    }
+
+    // Calculate homographic position
+    glm::vec3 hom_pos = glm::vec3(pos.x, pos.y, 1.0f);
+    glm::vec3 hom_last_pos = glm::vec3(last_positions[min_index].x, last_positions[min_index].y, 1.0f);
+    hom_pos = homography_inverse * hom_pos;
+    hom_last_pos = homography_inverse * hom_last_pos;
+    hom_pos /= hom_pos.z;
+    hom_last_pos /= hom_last_pos.z;
+
+    // Calculate velocity
+    float velocity = glm::distance(hom_pos, hom_last_pos) * 30.0f;  // 30 fps
+
+    return velocity;
+}
 
 int loadCarCascade(CascadeClassifier &carCascade){
     if (!carCascade.load("../cars.xml")) {
@@ -71,17 +115,34 @@ void processFrame(Mat &frame, std::vector<Rect> &cars_left, std::vector<Rect> &c
 
     cars_left = filterDetections(raw_cars_left);
     cars_right = filterDetections(raw_cars_right);
-}
 
+    // Guardar posiciones de los coches
+    for (const auto &car : cars_left) {
+        last_positions_left.push_back(glm::vec2(car.x + car.width / 2, car.y + car.height / 2));
+    }
+    for (const auto &car : cars_right) {
+        last_positions_right.push_back(glm::vec2(car.x + car.width / 2, car.y + car.height / 2));
+    }
+}
 
 void drawCars(Mat &frame, std::vector<Rect> &cars_left, std::vector<Rect> &cars_right) {
     polylines(frame, roi_left, true, Scalar(0, 255, 0), 2);
     polylines(frame, roi_right, true, Scalar(255, 0, 255), 2);
 
     for (const auto& car : cars_left) {
+        glm::vec2 pos(car.x + car.width / 2, car.y + car.height / 2);
+        auto velocity = getVelocity(pos, true);
+        if (velocity.has_value()) {
+            // Pintar velocidad (velocity.value())
+        }
         rectangle(frame, car, Scalar(255, 0, 0), 2);
     }
     for (const auto& car : cars_right) {
+        glm::vec2 pos(car.x + car.width / 2, car.y + car.height / 2);
+        auto velocity = getVelocity(pos, false);
+        if (velocity.has_value()) {
+            // Pintar velocidad (velocity.value())
+        }
         rectangle(frame, car, Scalar(0, 0, 255), 2);
     }
 }

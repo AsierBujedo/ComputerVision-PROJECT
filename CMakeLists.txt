@@ -21,3 +21,6 @@ find_package(Tesseract REQUIRED)
 
 include_directories(${OpenCV_INCLUDE_DIRS} ${Tesseract_INCLUDE_DIRS})
 target_link_libraries(ComputerVisionProject ${OpenCV_LIBS} ${Tesseract_LIBRARIES})
+
+# glm
+include_directories(${CMAKE_SOURCE_DIR}/external/glm)
