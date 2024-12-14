@@ -65,9 +65,9 @@ int main() {
             break;
         }
 
-        if (frameCount++ % frameSkip != 0) {
-            continue;
-        }
+        // if (frameCount++ % frameSkip != 0) {
+        //     continue;
+        // }
 
         int elapsedSeconds = static_cast<int>(frameCount / fps);
         std::string timestamp = calculateTimestamp(startDateTime, elapsedSeconds);
