@@ -2,3 +2,4 @@ build
 *.csv
 video/*
 .vscode/*
+video.mp4

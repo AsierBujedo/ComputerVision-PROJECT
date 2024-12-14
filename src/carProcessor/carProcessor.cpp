@@ -31,7 +31,7 @@ int loadCarCascade(CascadeClassifier &carCascade){
 void processFrame(Mat &frame, std::vector<Rect> &cars_left, std::vector<Rect> &cars_right, CascadeClassifier &carCascade) {
     Mat gray, closed, dilated;
     cvtColor(frame, gray, COLOR_BGR2GRAY);
-    GaussianBlur(gray, gray, Size(5, 5), 0);
+    GaussianBlur(gray, gray, Size(9, 9), 0);
 
     Mat kernel_close = getStructuringElement(MORPH_ELLIPSE, Size(2, 2));
     morphologyEx(gray, closed, MORPH_CLOSE, kernel_close);

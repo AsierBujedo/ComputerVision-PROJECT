@@ -49,7 +49,7 @@ int main() {
         return -1;
     }
 
-    std::string startDateTime = "12/10/2024 09:30";
+    std::string startDateTime = "12/10/2024 08:30";
     double fps = cap.get(CAP_PROP_FPS);
     int frameSkip = 1;
     int frameCount = 0;
