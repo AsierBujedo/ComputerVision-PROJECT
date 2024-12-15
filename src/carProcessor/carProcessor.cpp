@@ -122,7 +122,7 @@ void drawCars(Mat &frame, const std::vector<Rect> &cars_left, const std::vector<
         glm::vec2 pos(car.x + car.width / 2, car.y + car.height / 2);
         auto velocity = getVelocity(pos, last_cars_left);
         if (velocity.has_value()) {
-            // Pintar velocidad (velocity.value())
+            putText(frame, std::to_string(velocity.value() * 30 * 3.6) + " km/h", Point(car.x, car.y - 10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 1);
         }
         rectangle(frame, car, Scalar(255, 0, 0), 2);
     }
@@ -130,7 +130,7 @@ void drawCars(Mat &frame, const std::vector<Rect> &cars_left, const std::vector<
         glm::vec2 pos(car.x + car.width / 2, car.y + car.height / 2);
         auto velocity = getVelocity(pos, last_cars_right);
         if (velocity.has_value()) {
-            // Pintar velocidad (velocity.value())
+            putText(frame, std::to_string(velocity.value() * 30 * 3.6) + " km/h", Point(car.x, car.y - 10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 1);
         }
         rectangle(frame, car, Scalar(0, 0, 255), 2);
     }
