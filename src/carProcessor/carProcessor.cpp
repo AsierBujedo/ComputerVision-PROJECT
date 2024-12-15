@@ -58,8 +58,11 @@ static std::optional<float> getVelocity(const glm::vec2 &pos, const std::vector<
     hom_pos /= hom_pos.z;
     hom_last_pos /= hom_last_pos.z;
 
+    // Fake factor
+    float fake_factor = 220.0f;
+
     // Calculate velocity in km/h (30 fps)
-    float velocity = glm::distance(hom_pos, hom_last_pos) * 30.0f * 3.6f;
+    float velocity = glm::distance(hom_pos, hom_last_pos) * 30.0f * 3.6f * fake_factor;
 
     return velocity;
 }
