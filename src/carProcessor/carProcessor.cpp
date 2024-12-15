@@ -29,6 +29,10 @@ static glm::mat3 homography_inverse = glm::inverse(glm::mat3(
 ));
 
 static std::optional<float> getVelocity(const glm::vec2 &pos, const std::vector<Rect> &last_positions) {
+    // If there are no previous positions, return no velocity
+    if (last_positions.empty()) {
+        return std::nullopt;
+    }
 
     // Calculate distances to all previous positions
     std::vector<float> distances;
@@ -54,8 +58,8 @@ static std::optional<float> getVelocity(const glm::vec2 &pos, const std::vector<
     hom_pos /= hom_pos.z;
     hom_last_pos /= hom_last_pos.z;
 
-    // Calculate velocity
-    float velocity = glm::distance(hom_pos, hom_last_pos) * 30.0f;  // 30 fps
+    // Calculate velocity in km/h (30 fps)
+    float velocity = glm::distance(hom_pos, hom_last_pos) * 30.0f * 3.6f;
 
     return velocity;
 }
@@ -122,7 +126,7 @@ void drawCars(Mat &frame, const std::vector<Rect> &cars_left, const std::vector<
         glm::vec2 pos(car.x + car.width / 2, car.y + car.height / 2);
         auto velocity = getVelocity(pos, last_cars_left);
         if (velocity.has_value()) {
-            putText(frame, std::to_string(velocity.value() * 30 * 3.6) + " km/h", Point(car.x, car.y - 10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 1);
+            putText(frame, std::to_string(velocity.value()) + " km/h", Point(car.x, car.y - 10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 1);
         }
         rectangle(frame, car, Scalar(255, 0, 0), 2);
     }
@@ -130,7 +134,7 @@ void drawCars(Mat &frame, const std::vector<Rect> &cars_left, const std::vector<
         glm::vec2 pos(car.x + car.width / 2, car.y + car.height / 2);
         auto velocity = getVelocity(pos, last_cars_right);
         if (velocity.has_value()) {
-            putText(frame, std::to_string(velocity.value() * 30 * 3.6) + " km/h", Point(car.x, car.y - 10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 1);
+            putText(frame, std::to_string(velocity.value()) + " km/h", Point(car.x, car.y - 10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 1);
         }
         rectangle(frame, car, Scalar(0, 0, 255), 2);
     }

@@ -54,6 +54,8 @@ int main() {
     int frameSkip = 1;
     int frameCount = 0;
 
+    std::vector<Rect> cars_left, cars_right, cars_left_prev, cars_right_prev;
+
     std::ofstream csvFile("car_counts.csv");
     csvFile << "Time,LeftLaneCars,RightLaneCars\n";
 
@@ -73,13 +75,18 @@ int main() {
         std::string timestamp = calculateTimestamp(startDateTime, elapsedSeconds);
         std::string dateTime = extractTextFromROI(frame);
 
-        std::vector<Rect> cars_left, cars_right;
+        cars_left.clear();
+        cars_right.clear();
+
         processFrame(frame, cars_left, cars_right, car_cascade);
 
         csvFile << timestamp << "," << cars_left.size() << "," << cars_right.size() << std::endl;
 
-        drawCars(frame, cars_left, cars_right);
+        drawCars(frame, cars_left, cars_right, cars_left_prev, cars_right_prev);
         drawDate(frame);
+
+        std::swap(cars_left, cars_left_prev);
+        std::swap(cars_right, cars_right_prev);
 
         imshow("Car Detection", frame);
 
