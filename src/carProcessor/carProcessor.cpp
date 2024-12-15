@@ -22,21 +22,18 @@ static std::vector<Point> roi_right = {
     Point(1240, 1050)
 };
 
-static std::vector<glm::vec2> last_positions_left;
-static std::vector<glm::vec2> last_positions_right;
-
 static glm::mat3 homography_inverse = glm::inverse(glm::mat3(
     1.08680211e-02,  8.00229688e-02, -9.28824499e+01,
     -2.84379452e-02,  2.91213634e-02, -1.29940476e+01,
     -5.47771087e-04, -2.32384026e-03,  1.00000000e+00
 ));
 
-static std::optional<float> getVelocity(glm::vec2 &pos, bool is_left) {
-    std::vector<glm::vec2> &last_positions = is_left ? last_positions_left : last_positions_right;
+static std::optional<float> getVelocity(const glm::vec2 &pos, const std::vector<Rect> &last_positions) {
 
     // Calculate distances to all previous positions
     std::vector<float> distances;
-    for (const auto &last_pos : last_positions) {
+    for (const auto &last_point : last_positions) {
+        glm::vec2 last_pos(last_point.x + last_point.width / 2, last_point.y + last_point.height / 2);
         distances.push_back(glm::distance(pos, last_pos));
     }
 
@@ -115,23 +112,15 @@ void processFrame(Mat &frame, std::vector<Rect> &cars_left, std::vector<Rect> &c
 
     cars_left = filterDetections(raw_cars_left);
     cars_right = filterDetections(raw_cars_right);
-
-    // Guardar posiciones de los coches
-    for (const auto &car : cars_left) {
-        last_positions_left.push_back(glm::vec2(car.x + car.width / 2, car.y + car.height / 2));
-    }
-    for (const auto &car : cars_right) {
-        last_positions_right.push_back(glm::vec2(car.x + car.width / 2, car.y + car.height / 2));
-    }
 }
 
-void drawCars(Mat &frame, std::vector<Rect> &cars_left, std::vector<Rect> &cars_right) {
+void drawCars(Mat &frame, const std::vector<Rect> &cars_left, const std::vector<Rect> &cars_right,  const std::vector<Rect> &last_cars_left, const std::vector<Rect> &last_cars_right) {
     polylines(frame, roi_left, true, Scalar(0, 255, 0), 2);
     polylines(frame, roi_right, true, Scalar(255, 0, 255), 2);
 
     for (const auto& car : cars_left) {
         glm::vec2 pos(car.x + car.width / 2, car.y + car.height / 2);
-        auto velocity = getVelocity(pos, true);
+        auto velocity = getVelocity(pos, last_cars_left);
         if (velocity.has_value()) {
             // Pintar velocidad (velocity.value())
         }
@@ -139,14 +128,10 @@ void drawCars(Mat &frame, std::vector<Rect> &cars_left, std::vector<Rect> &cars_
     }
     for (const auto& car : cars_right) {
         glm::vec2 pos(car.x + car.width / 2, car.y + car.height / 2);
-        auto velocity = getVelocity(pos, false);
+        auto velocity = getVelocity(pos, last_cars_right);
         if (velocity.has_value()) {
             // Pintar velocidad (velocity.value())
         }
         rectangle(frame, car, Scalar(0, 0, 255), 2);
     }
-
-    // Eliminar posiciones antiguas
-    last_positions_left.clear();
-    last_positions_right.clear();
 }
